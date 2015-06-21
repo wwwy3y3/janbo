@@ -14,6 +14,7 @@ def count_like(num, train):
         counts[int(pair[0])-1][int(pair[1])-1] += 1
     return counts
 
+
 # open file
 glass = open("glass.data", "r")
 
@@ -92,15 +93,19 @@ print count_class
 count_likes= [count_like(num, train) for num in xrange(1,10)]
 '''pp.pprint(count_likes)'''
 #predict the class of test
-corrects = [] #of correct for each attribute
-for k in range(1,10):#attribute1 to 9 
+
+likelihoods= [[ [0]*10 for i in range(0,10) ]* 10 for i in range(0,10)]
+corrects= collections.Counter() #of correct for each attribute
+candidates= range(1,10)
+for k in candidates:#attribute1 to 9 
     predict_class =[] # predict class value for test 
     for i in range(0,len(test)):
         v = int(test[i][k]) #use the attribute1 as example
         posteriors = [] # posterior for each class
         for j in range(1,8): #class 1 to 7
             prior = count_class[j-1]/float(len(test))
-            likelihood = (count_likes[0][j-1][v-1]+1)/(count_class[j-1]+10)
+            likelihood = (count_likes[k-1][j-1][v-1]+1)/(count_class[j-1]+10)
+            likelihoods[k-1][j-1][v-1]= likelihood
             posterior = prior*likelihood
             posteriors.append(posterior)
         #print posteriors 
@@ -111,25 +116,98 @@ for k in range(1,10):#attribute1 to 9
     for i in range(0,len(test)):
         if predict_class[i] == int(test[i][10]):
             correct += 1
-    corrects.append(correct)
-print "corrects = ",corrects
+    corrects[k] += correct
+print "corrects = ",corrects.most_common()
+order_attrs= [ ele[0] for ele in corrects.most_common() ]
+#sort the corrects
+#index = range(1,10)
+
 # select attribute
 select_attributes = []
-accuracies = []
-for i in range(0,len(corrects)):#find which attribute should be selected
-    if corrects[i] == max(corrects):
-        select_attribute = i+1
+accuracy= None
+for i in candidates:#find which attribute should be selected
+    if corrects[i] == corrects.most_common(1)[0][1]:
+        select_attribute = i
         select_attributes.append(select_attribute)
+        candidates.remove(select_attribute)
+        #order_attrs.remove(select_attribute)
+
         accuracy = corrects[i]/float(len(test))
-        accuracies.append(accuracy)
         break #avoid pick up two attribute in once, beacuse they have same accuracy
-print "attribute = ",select_attributes, "accuracy = ", accuracies
+print "attribute = ",select_attributes, "accuracy = ", accuracy
+
+# iters
+# likelihood= likelihoods[select_attributes[0]-1]
+likelihood = [[1.0]*7 for i in range(0,len(test)) ]
+for index, k in enumerate(order_attrs):# attributes remove the best 
+    predict_class =[] # predict class value for test 
+    for i in range(0,len(test)):
+        v = int(test[i][k]) #use the attribute1 as example
+        posteriors = [] # posterior for each class
+        for j in range(1,8): #class 1 to 7
+            prior = count_class[j-1]/float(len(test))
+            likelihood[i][j-1] *= likelihoods[k-1][j-1][v-1]*likelihood[i][j-1]
+            posterior = prior*likelihood[i][j-1]
+            posteriors.append(posterior)
+        #print posteriors 
+        for j in range(1,8): #class 1 to 7
+            if posteriors[j-1] == max(posteriors):
+                predict_class.append(j)
+        #print "actual_class = ",test[i][10]
+    print "predict_class = ", predict_class 
+    correct = 0
+    for i in range(0,len(test)):
+        if predict_class[i] == int(test[i][10]):
+            correct += 1
+    print correct
+    new_accuracy = correct/float(len(test))
+    print "!", new_accuracy, accuracy
+    if new_accuracy > accuracy:
+        select_attributes.append(k)
+        accuracy= new_accuracy
+    elif index == 0:
+        accuracy= new_accuracy
+    else:
+        break
+print "select_attributes = ", select_attributes
 
 
 
+# alphas
 
+likelihoods= [[ [0]*10 for i in range(0,10) ]* 10 for i in range(0,10)]
 
+candidates= range(1,10)
+for k in candidates:#attribute1 to 9 
+    predict_class =[] # predict class value for test 
+    for i in range(0,len(test)):
+        v = int(test[i][k]) #use the attribute1 as example
+        cand_alphas= []
+        alpha= []
+        for pp in range(1,11): #pp= possible attribute values 
+            for alpha in xrange(0,50):
+                posteriors = [] # posterior for each class
+                for j in range(1,8): #class 1 to 7
+                    prior = count_class[j-1]/float(len(test))
+                    if v = pp:
+                        likelihood = (count_likes[k-1][j-1][v-1]+alpha[pp])/(count_class[j-1]+sum(alphas[k-1]))
+                    else:
+                        likelihood = (count_likes[k-1][j-1][v-1]+1)/(count_class[j-1]+sum(alphas[k-1]))
+                    posterior = prior*likelihood
+                    posteriors.append(posterior)
+                #print posteriors 
+                for j in range(1,8): #class 1 to 7
+                    if posteriors[j-1] == max(posteriors):
+                        predict_class.append(j)
+                correct = 0
+                for i in range(0,len(test)):
+                    if predict_class[i] == int(test[i][10]):
+                        correct += 1
+                cand_alphas.append(correct)
+            # find max
+            
+            
 
-
+    
 
 
